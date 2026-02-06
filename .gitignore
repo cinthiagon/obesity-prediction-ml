@@ -12,7 +12,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Modelos treinados
-models/*.pkl
+# models/*.pkl
 
 # Arquivos de sistema
 .DS_Store
