@@ -1,8 +1,11 @@
 # =========================
-#A aplicação preditiva foi desenvolvida com foco em usabilidade clínica, 
+# A aplicação preditiva foi desenvolvida com foco em usabilidade clínica, 
 # apresentando interface em português e explicações claras sobre as escalas e unidades de cada variável utilizada. 
 # Para preservar a consistência do modelo treinado, foi implementada uma camada de mapeamento entre as respostas do usuário 
 # e as categorias originais do modelo, garantindo clareza para o usuário final sem impacto na performance preditiva.
+# Antes do deploy, o projeto foi atualizado com um novo commit contendo a versão final da aplicação,
+# o modelo treinado e os ajustes necessários para execução em ambiente de produção,
+# garantindo que o código utilizado no deploy correspondesse exatamente ao estado versionado no repositório.
 # =========================
 
 import streamlit as st
