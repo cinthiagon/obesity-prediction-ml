@@ -9,7 +9,7 @@ app = Flask(__name__)
 # Carregar modelo (pipeline completo)
 # =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "..", "models", "obesity_model.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "obesity_model.pkl")
 
 model = joblib.load(MODEL_PATH)
 
@@ -48,4 +48,4 @@ def predict():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)

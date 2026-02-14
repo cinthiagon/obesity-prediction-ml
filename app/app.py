@@ -140,7 +140,7 @@ with tab1:
         }
 
         try:
-            response = requests.post("http://api:5000/predict", json=input_data)
+            response = requests.post("http://SEU-ENDERECO-API/predict", json=input_data)
             if response.status_code == 200:
                 prediction = response.json()["prediction"]
                 st.success(f"🎯 Classificação estimada: {prediction}")
