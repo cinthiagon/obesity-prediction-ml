@@ -2,7 +2,7 @@
 
 Este projeto tem como objetivo desenvolver um **sistema de apoio à decisão clínica** para auxiliar profissionais de saúde na **identificação do nível de obesidade** de um indivíduo, utilizando técnicas de **Machine Learning**.
 
-Além da predição individual, o projeto também disponibiliza um **painel analítico populacional**, permitindo a análise de padrões e perfis relacionados à obesidade para apoiar ações preventivas e estratégicas em saúde.
+Além da predição individual, o projeto também disponibiliza um **painel analítico populacional estratégico**, permitindo a análise de padrões e perfis relacionados à obesidade para apoiar ações preventivas e decisões executivas em saúde.
 
 ---
 
@@ -10,31 +10,33 @@ Além da predição individual, o projeto também disponibiliza um **painel anal
 
 Projeto desenvolvido por:
 
-- Cinthia Gonçalez da Silva
-- Gabriel Huzian
-- Karyne Barbosa Silva
+- Cinthia Gonçalez da Silva  
+- Gabriel Huzian  
+- Karyne Barbosa Silva  
 
-Projeto apresentado ao Tech Challenge 004 da Pós-Graduação em Data Analytics da FIAP.
+Projeto apresentado ao **Tech Challenge 004**  
+Pós-Graduação em Data Analytics – FIAP - 2025/26
 
 ---
 
 ## 🎯 Objetivo do Projeto
 
-- Desenvolver um **modelo de Machine Learning** capaz de prever o nível de obesidade de um indivíduo  
+- Desenvolver um modelo de **Machine Learning multiclasse** para prever o nível de obesidade  
 - Criar um **sistema preditivo interativo** para uso por equipes médicas  
-- Disponibilizar uma **visão analítica dos dados históricos** para geração de insights  
-- Garantir uma solução **reprodutível, interpretável e orientada ao negócio**
+- Construir um **painel analítico estratégico** para análise populacional  
+- Realizar o Deploy utilizando o **Streamlit**
 
 ---
 
 ## 📊 Base de Dados
 
-O projeto utiliza o dataset `obesity.csv`, que contém informações físicas, comportamentais e de hábitos de vida.
+O projeto utiliza o dataset `obesity.csv`, contendo informações físicas, comportamentais e de estilo de vida.
 
-### Principais variáveis
+### Principais grupos de variáveis
+
 - **Demográficas:** idade, gênero, altura, peso  
 - **Hábitos alimentares:** consumo de vegetais, alimentos calóricos, refeições diárias  
-- **Estilo de vida:** atividade física, consumo de água, uso de tecnologia  
+- **Estilo de vida:** atividade física, consumo de água, tempo de tela  
 - **Histórico:** histórico familiar de excesso de peso  
 - **Variável alvo:** nível de obesidade  
 
@@ -42,126 +44,119 @@ O projeto utiliza o dataset `obesity.csv`, que contém informações físicas, c
 
 ## 🧠 Metodologia
 
-O desenvolvimento do projeto seguiu todas as etapas de uma **pipeline completa de Machine Learning**:
+O desenvolvimento seguiu uma pipeline completa de Machine Learning:
 
 1. Análise Exploratória de Dados (EDA)  
-2. Pré-processamento e feature engineering  
-   - One-Hot Encoding para variáveis categóricas  
-   - StandardScaler para variáveis numéricas  
-3. Construção de pipelines de Machine Learning  
+2. Pré-processamento  
+   - One-Hot Encoding  
+   - StandardScaler  
+3. Construção de Pipeline com `ColumnTransformer`  
 4. Treinamento e comparação de modelos  
-5. Avaliação com métricas por classe (precision, recall e F1-score)  
+5. Avaliação com métricas por classe  
 6. Seleção do modelo final  
-7. Deploy do sistema preditivo  
-8. Construção do painel analítico  
+7. Serialização do modelo (.pkl)  
+8. Deploy via API Flask  
+9. Integração com interface Streamlit  
+10. Conteinerização com Docker  
 
 ---
 
 ## 🤖 Modelos Avaliados
 
-Os seguintes modelos foram treinados e comparados:
-
 - Regressão Logística (baseline)  
 - Random Forest  
-- Gradient Boosting (**modelo final escolhido**)  
+- Gradient Boosting (**modelo final selecionado**)  
 
-### Critérios de escolha
+### Critérios de Escolha
+
 - Acurácia global  
-- Recall e F1-score por classe  
+- Precision, Recall e F1-score por classe  
+- Macro e Weighted average  
 - Equilíbrio entre classes  
 - Capacidade de generalização  
-- Adequação ao contexto de saúde  
 
-**Acurácia final do modelo escolhido:** ~95%
-
----
-
-## 📌 Sistema Preditivo
-
-O sistema permite que profissionais de saúde insiram informações de um indivíduo e obtenham uma **estimativa do nível de obesidade**.
-
-### Características
-- Interface 100% em português  
-- Escalas explicadas diretamente na aplicação  
-- Mapeamento PT → EN preservando o modelo treinado  
-- Resultado apresentado como **apoio à decisão clínica**
+**Acurácia final do modelo escolhido: ~95%**
 
 ---
 
-## 📊 Painel Analítico
+# 🏗 Arquitetura da Solução
 
-O painel analítico oferece uma **visão populacional dos dados**, permitindo:
+A aplicação foi estruturada em arquitetura de microsserviços:
 
-- Visualizar a distribuição dos níveis de obesidade  
-- Analisar diferenças por gênero  
-- Avaliar a relação entre atividade física e obesidade  
-- Avaliar a relação entre hábitos alimentares e obesidade  
+[ Streamlit Dashboard ] ---> [ API Flask ] ---> [ Modelo ML (.pkl) ]
 
-Todos os rótulos e gráficos são apresentados em **português**, facilitando a interpretação por equipes médicas.
 
----
+### Componentes:
 
-## 🌐 Aplicação Online (Deploy)
-
-A aplicação foi implantada no **Streamlit Cloud** e está disponível publicamente no link abaixo:
-
-https://obesity-prediction-ml-fiap-tech-004.streamlit.app/
+- **API Flask** → Responsável pela inferência do modelo  
+- **Streamlit** → Interface preditiva + painel analítico  
+- **Docker** → Conteinerização completa  
+- **Render** → Deploy em nuvem  
 
 ---
 
-## 📂 Estrutura do Projeto
+## 🌐 Deploy em Produção
 
-```text
+### 🔹 API (Backend)
+
+https://obesity-prediction-ml-1sl8.onrender.com
+
+### 🔹 Dashboard (Frontend)
+
+https://obesity-dahboard.onrender.com/
+
+> ⚠️ Observação: Em função do plano gratuito do Render, podem ocorrer limitações temporárias de requisições (erro 429) ou pequenos atrasos no primeiro acesso (cold start).
+
+---
+
+# 📊 Painel Analítico Estratégico
+
+O dashboard inclui:
+
+- Segmentação por gênero e faixa etária  
+- Cálculo de IMC médio por grupo  
+- Score comportamental de risco  
+- Análise de hábitos alimentares  
+- Análise de estilo de vida  
+- Relação entre variáveis e níveis de obesidade  
+- Visualizações explicativas para equipe médica  
+
+Todos os gráficos possuem título e contextualização clínica.
+
+---
+
+# 🐳 Conteinerização
+
+A aplicação foi totalmente conteinerizada utilizando Docker.
+
+## Estrutura do Projeto
+
 obesity-project/
 │
+├── api/
+│ ├── app.py
+│ ├── obesity_model.pkl
+│ ├── Dockerfile
+│ └── requirements.txt
+│
 ├── app/
-│   └── app.py               # Aplicação Streamlit (predição + painel)
-│
-├── data/
-│   └── obesity.csv          # Base de dados
-│
-├── models/
-│   └── obesity_model.pkl    # Modelo treinado
+│ ├── app.py
+│ ├── obesity.csv
+│ ├── Dockerfile
+│ └── requirements.txt
 │
 ├── notebooks/
-│   └── 01_eda_obesity.ipynb # Análise exploratória e modelagem
+│ └── 01_eda_obesity.ipynb
 │
-├── requirements.txt         # Dependências do projeto
+├── docker-compose.yml
 ├── .gitignore
-└── README.md 
-```
+└── README.md
+
+
 ---
 
-## ▶️ Como Executar Localmente
+# ▶️ Executar Localmente com Docker
 
-1. Clonar o repositório:
-```text
-git clone https://github.com/cinthiagon/obesity-prediction-ml.git
-cd obesity-project
-```
-<br>
-
-2. Criar e ativar o ambiente virtual:
-```text
-python -m venv venv
-source venv/bin/activate  # Linux/macOS 
-venv\Scripts\activate`     # Windows
-```
-<br>
-
-3. Instalar Dependências:
-``` text
-pip install -r requirements.txt
-```
-<br>
-   
-4. Executar a aplicação: 
-```text
-python -m streamlit run app/app.py
-```
----
-
-## ⚠️ Aviso Importante
-
-Este sistema não substitui avaliação médica profissional.
-Os resultados devem ser utilizados exclusivamente como apoio à decisão clínica.
+```bash
+docker-compose build
+docker-compose up
