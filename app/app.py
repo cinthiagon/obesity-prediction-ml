@@ -138,16 +138,19 @@ with tab1:
             "CALC": calc_map[calc_pt],
             "MTRANS": mtrans_map[mtrans_pt]
         }
-
+        API_URL = "https://obesity-prediction-ml-1sl8.onrender.com/predict"
         try:
-            response = requests.post("http://SEU-ENDERECO-API/predict", json=input_data)
+            response = requests.post(API_URL, json=input_data)
+
             if response.status_code == 200:
-                prediction = response.json()["prediction"]
+                prediction = response.json().get("prediction")
                 st.success(f"🎯 Classificação estimada: {prediction}")
             else:
-                st.error("Erro ao consultar API.")
-        except:
-            st.error("API não está ativa.")
+                st.error(f"Erro na API: {response.status_code}")
+        
+        except requests.exceptions.RequestException as e:
+            st.error("⚠️ Não foi possível conectar à API.")
+            st.caption("A API pode estar iniciando (Render gratuito pode levar alguns segundos).")
 
 # =====================================================
 # 📊 DASHBOARD COMPLETO
