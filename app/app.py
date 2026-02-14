@@ -72,12 +72,13 @@ obesity_map_pt = {
 @st.cache_data
 def load_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, "..", "data", "obesity.csv")
+    data_path = os.path.join(base_dir, "obesity.csv")
     return pd.read_csv(data_path)
 
 df = load_data()
 df["IMC"] = df["Weight"] / (df["Height"] ** 2)
 df["Nível de Obesidade"] = df["Obesity"].map(obesity_map_pt)
+
 
 # =====================================================
 # ABAS
