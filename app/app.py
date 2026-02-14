@@ -1,48 +1,42 @@
-# =========================
-# A aplicação preditiva foi desenvolvida com foco em usabilidade clínica, 
-# apresentando interface em português e explicações claras sobre as escalas e unidades de cada variável utilizada. 
-# Para preservar a consistência do modelo treinado, foi implementada uma camada de mapeamento entre as respostas do usuário 
-# e as categorias originais do modelo, garantindo clareza para o usuário final sem impacto na performance preditiva.
+"""
+Este aplicativo foi desenvolvido como parte de um trabalho acadêmico aplicado, com foco na
+integração entre modelagem preditiva e inteligência analítica voltada à tomada de decisão
+em saúde. A solução combina um modelo de Machine Learning treinado para classificação de
+níveis de obesidade com um painel estratégico interativo construído em Streamlit.
 
-# Antes do deploy, o projeto foi atualizado com um novo commit contendo a versão final da aplicação,
-# o modelo treinado e os ajustes necessários para execução em ambiente de produção,
-# garantindo que o código utilizado no deploy correspondesse exatamente ao estado versionado no repositório.
+A aplicação está estruturada em duas camadas principais: (1) módulo de predição individual,
+que coleta dados clínicos e comportamentais do paciente e realiza inferência por meio de
+uma API Flask contendo o modelo previamente treinado; e (2) painel analítico populacional,
+que permite segmentação por faixa etária e gênero, cálculo de score comportamental de risco,
+análise multivariada e visualização detalhada de todas as variáveis clínicas e de estilo de
+vida presentes no formulário.
 
-# O sistema final integra uma aplicação preditiva individual e um painel analítico populacional 
-# em uma única solução desenvolvida em Streamlit. Enquanto o módulo preditivo auxilia a avaliação clínica individual, 
-# o painel analítico fornece insights estratégicos baseados em dados históricos, apoiando decisões preventivas, 
-# educativas e de gestão em saúde.
-# =========================
+Cada visualização inclui contextualização interpretativa, garantindo não apenas exposição
+gráfica dos dados, mas suporte à análise clínica e estratégica. O projeto foi concebido
+com foco em aplicabilidade real no ambiente hospitalar, possibilitando tanto avaliação
+individual quanto monitoramento populacional e apoio a decisões preventivas baseadas em dados.
+"""
+
 
 import streamlit as st
 import pandas as pd
-import joblib
+import numpy as np
+import requests
 import os
+import plotly.express as px
 
-# =========================
-# Configuração da página
-# =========================
-st.set_page_config(
-    page_title="Sistema Preditivo de Obesidade",
-    layout="centered"
-)
+# =====================================================
+# CONFIGURAÇÃO
+# =====================================================
+st.set_page_config(page_title="Sistema Estratégico de Obesidade", layout="wide")
 
-st.title("🏥 Sistema Preditivo e Analítico de Obesidade")
-st.write(
-    """
-    Esta aplicação utiliza **Machine Learning** para apoiar profissionais de saúde
-    na **avaliação individual** e na **análise populacional** relacionada à obesidade.
+st.title("🏥 Sistema Estratégico de Análise de Obesidade")
+st.markdown("Plataforma de apoio à decisão clínica baseada em Machine Learning e análise populacional.")
 
-    ⚠️ **Aviso:** os resultados apresentados são apenas **apoio à decisão clínica**
-    e **não substituem** avaliação médica profissional.
-    """
-)
-
-# =========================
-# Mapas PT -> EN (modelo)
-# =========================
+# =====================================================
+# MAPAS DE TRADUÇÃO
+# =====================================================
 yes_no_map = {"Sim": "yes", "Não": "no"}
-
 gender_map = {"Masculino": "Male", "Feminino": "Female"}
 
 caec_map = {
@@ -62,9 +56,6 @@ mtrans_map = {
     "Bicicleta": "Bike"
 }
 
-# =========================
-# Mapas EN -> PT (painel)
-# =========================
 obesity_map_pt = {
     "Insufficient_Weight": "Peso Insuficiente",
     "Normal_Weight": "Peso Normal",
@@ -75,25 +66,9 @@ obesity_map_pt = {
     "Obesity_Type_III": "Obesidade Tipo III"
 }
 
-gender_map_pt = {
-    "Male": "Masculino",
-    "Female": "Feminino"
-}
-
-# =========================
-# Carregamento do modelo
-# =========================
-@st.cache_resource
-def load_model():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(base_dir, "..", "models", "obesity_model.pkl")
-    return joblib.load(model_path)
-
-model = load_model()
-
-# =========================
-# Carregamento dos dados
-# =========================
+# =====================================================
+# CARREGAR DADOS
+# =====================================================
 @st.cache_data
 def load_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -101,98 +76,51 @@ def load_data():
     return pd.read_csv(data_path)
 
 df = load_data()
+df["IMC"] = df["Weight"] / (df["Height"] ** 2)
+df["Nível de Obesidade"] = df["Obesity"].map(obesity_map_pt)
 
-# =========================
-# Abas
-# =========================
+# =====================================================
+# ABAS
+# =====================================================
 tab1, tab2 = st.tabs(["🔍 Predição Individual", "📊 Painel Analítico"])
 
-# ======================================================
-# ABA 1 — SISTEMA PREDITIVO
-# ======================================================
+# =====================================================
+# 🔍 PREDIÇÃO INDIVIDUAL
+# =====================================================
 with tab1:
-    st.header("📋 Avaliação Individual")
 
+    st.header("Avaliação Clínica Individual")
+
+    st.subheader("1️⃣ Dados Corporais")
     gender_pt = st.selectbox("Gênero", ["Masculino", "Feminino"])
-    age = st.number_input("Idade (anos)", 0, 120, 30)
+    age = st.number_input("Idade", 0, 120, 30)
+    height = st.number_input("Altura (m)", 1.0, 2.5, 1.70)
+    weight = st.number_input("Peso (kg)", 30.0, 300.0, 70.0)
 
-    height = st.number_input(
-        "Altura (metros)", 1.0, 2.5, 1.70,
-        help="Altura em metros (ex.: 1.70)."
-    )
+    st.divider()
 
-    weight = st.number_input(
-        "Peso (kg)", 30.0, 300.0, 70.0,
-        help="Peso corporal em quilogramas."
-    )
+    st.subheader("2️⃣ Hábitos Alimentares")
+    family_history_pt = st.selectbox("Histórico familiar?", ["Sim", "Não"])
+    favc_pt = st.selectbox("Alimentos calóricos frequentes?", ["Sim", "Não"])
+    fcvc = st.slider("Consumo de vegetais (1=baixo, 3=alto)", 1.0, 3.0, 2.0)
+    ncp = st.slider("Refeições principais por dia", 1.0, 4.0, 3.0)
+    caec_pt = st.selectbox("Alimentação entre refeições", ["Não", "Às vezes", "Frequentemente", "Sempre"])
+    ch2o = st.slider("Consumo de água (1=baixo, 3=alto)", 1.0, 3.0, 2.0)
+    calc_pt = st.selectbox("Consumo de álcool", ["Não", "Às vezes", "Frequentemente", "Sempre"])
 
-    family_history_pt = st.selectbox(
-        "Histórico familiar de excesso de peso?", ["Sim", "Não"]
-    )
+    st.divider()
 
-    favc_pt = st.selectbox(
-        "Consome alimentos altamente calóricos com frequência?", ["Sim", "Não"]
-    )
-
-    fcvc = st.slider(
-        "Frequência de consumo de vegetais",
-        1.0, 3.0, 2.0,
-        help="1 = raramente | 2 = às vezes | 3 = frequentemente"
-    )
-
-    ncp = st.slider(
-        "Número de refeições principais por dia",
-        1.0, 4.0, 3.0,
-        help="Quantidade de refeições principais realizadas por dia."
-    )
-
-    caec_pt = st.selectbox(
-        "Consome alimentos entre as refeições?",
-        ["Não", "Às vezes", "Frequentemente", "Sempre"]
-    )
-
+    st.subheader("3️⃣ Estilo de Vida")
     smoke_pt = st.selectbox("Fuma?", ["Sim", "Não"])
+    scc_pt = st.selectbox("Monitora calorias?", ["Sim", "Não"])
+    faf = st.slider("Atividade física (0=nenhuma, 3=alta)", 0.0, 3.0, 1.0)
+    tue = st.slider("Tempo de tela (0=baixo, 2=alto)", 0.0, 2.0, 1.0)
+    mtrans_pt = st.selectbox("Meio de transporte",
+                             ["Transporte Público", "Caminhada", "Automóvel", "Motocicleta", "Bicicleta"])
 
-    ch2o = st.slider(
-        "Consumo diário de água",
-        1.0, 3.0, 2.0,
-        help="1 = < 1 litro | 2 = 1–2 litros | 3 = > 2 litros por dia"
-    )
+    if st.button("🔎 Calcular Classificação"):
 
-    scc_pt = st.selectbox(
-        "Monitora a ingestão calórica?", ["Sim", "Não"]
-    )
-
-    faf = st.slider(
-        "Frequência de atividade física",
-        0.0, 3.0, 1.0,
-        help="0 = nenhuma | 1 = 1–2x/sem | 2 = 2–4x/sem | 3 = >4x/sem"
-    )
-
-    tue = st.slider(
-        "Tempo de uso de dispositivos tecnológicos",
-        0.0, 2.0, 1.0,
-        help="0 = baixo | 1 = moderado | 2 = elevado"
-    )
-
-    calc_pt = st.selectbox(
-        "Frequência de consumo de álcool",
-        ["Não", "Às vezes", "Frequentemente", "Sempre"]
-    )
-
-    mtrans_pt = st.selectbox(
-        "Meio de transporte utilizado",
-        [
-            "Transporte Público",
-            "Caminhada",
-            "Automóvel",
-            "Motocicleta",
-            "Bicicleta"
-        ]
-    )
-
-    if st.button("🔍 Realizar Predição"):
-        input_data = pd.DataFrame([{
+        input_data = {
             "Gender": gender_map[gender_pt],
             "Age": age,
             "Height": height,
@@ -209,59 +137,145 @@ with tab1:
             "TUE": tue,
             "CALC": calc_map[calc_pt],
             "MTRANS": mtrans_map[mtrans_pt]
-        }])
+        }
 
-        prediction = model.predict(input_data)[0]
+        try:
+            response = requests.post("http://api:5000/predict", json=input_data)
+            if response.status_code == 200:
+                prediction = response.json()["prediction"]
+                st.success(f"🎯 Classificação estimada: {prediction}")
+            else:
+                st.error("Erro ao consultar API.")
+        except:
+            st.error("API não está ativa.")
 
-        st.subheader("📌 Resultado da Predição")
-        st.success(f"Nível estimado de obesidade: **{prediction}**")
-
-# ======================================================
-# ABA 2 — PAINEL ANALÍTICO
-# ======================================================
+# =====================================================
+# 📊 DASHBOARD COMPLETO
+# =====================================================
 with tab2:
-    st.header("📊 Painel Analítico — Visão Populacional")
 
-    st.markdown(
-        """
-        Este painel apresenta **insights populacionais** baseados em dados históricos,
-        apoiando decisões estratégicas, ações preventivas e programas educativos
-        relacionados à obesidade.
-        """
+    st.header("Painel Estratégico de Saúde Populacional")
+
+    # FILTROS
+    st.sidebar.header("Filtros")
+    idade_min, idade_max = st.sidebar.slider(
+        "Faixa Etária",
+        int(df["Age"].min()),
+        int(df["Age"].max()),
+        (int(df["Age"].min()), int(df["Age"].max()))
     )
 
-    # DataFrame apenas para visualização
-    df_panel = df.copy()
-    df_panel["Nível de Obesidade"] = df_panel["Obesity"].map(obesity_map_pt)
-    df_panel["Gênero"] = df_panel["Gender"].map(gender_map_pt)
+    genero = st.sidebar.selectbox("Gênero", ["Todos", "Male", "Female"])
 
-    # Gráfico 1
-    st.subheader("Distribuição dos níveis de obesidade")
-    st.bar_chart(df_panel["Nível de Obesidade"].value_counts())
+    df_filtrado = df[(df["Age"] >= idade_min) & (df["Age"] <= idade_max)].copy()
 
-    # Gráfico 2
-    st.subheader("Níveis de obesidade por gênero")
-    st.bar_chart(
-        df_panel
-        .groupby(["Nível de Obesidade", "Gênero"])
-        .size()
-        .unstack()
+    if genero != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Gender"] == genero]
+
+    # SCORE
+    df_filtrado["risk_score"] = (
+        (df_filtrado["family_history"] == "yes").astype(int) * 2 +
+        (df_filtrado["FAF"] == 0).astype(int) * 2 +
+        (df_filtrado["TUE"] >= 1.5).astype(int) +
+        (df_filtrado["CH2O"] == 1).astype(int) +
+        (df_filtrado["FAVC"] == "yes").astype(int)
     )
 
-    # Gráfico 3
-    st.subheader("Atividade física e níveis de obesidade")
-    st.line_chart(
-        df_panel
-        .groupby(["FAF", "Nível de Obesidade"])
-        .size()
-        .unstack()
-    )
+    # KPIs
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("IMC Médio", round(df_filtrado["IMC"].mean(), 2))
+    col2.metric("Idade Média", round(df_filtrado["Age"].mean(), 1))
+    col3.metric("% Obesidade",
+                f"{(df_filtrado['Obesity'].str.contains('Obesity').mean()*100):.1f}%")
+    col4.metric("Score Médio de Risco",
+                round(df_filtrado["risk_score"].mean(), 2))
 
-    # Gráfico 4
-    st.subheader("Consumo de vegetais e níveis de obesidade")
-    st.line_chart(
-        df_panel
-        .groupby(["FCVC", "Nível de Obesidade"])
-        .size()
-        .unstack()
-    )
+    st.divider()
+
+    # FUNÇÃO AUXILIAR PARA PAINÉIS
+    def painel_hist(coluna, titulo, explicacao):
+        st.subheader(titulo)
+        st.markdown(explicacao)
+        fig = px.histogram(
+            df_filtrado,
+            x=coluna,
+            color="Nível de Obesidade",
+            barmode="group",
+            color_discrete_sequence=px.colors.sequential.Blues
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.divider()
+
+    def painel_box(coluna, titulo, explicacao):
+        st.subheader(titulo)
+        st.markdown(explicacao)
+        fig = px.box(
+            df_filtrado,
+            x="Nível de Obesidade",
+            y=coluna,
+            color="Nível de Obesidade",
+            color_discrete_sequence=px.colors.sequential.Blues
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.divider()
+
+    # DISTRIBUIÇÕES
+    painel_hist("Nível de Obesidade",
+                "📌 Distribuição dos Níveis de Obesidade",
+                "Distribuição populacional dos níveis de obesidade.")
+
+    painel_box("IMC",
+               "📌 IMC por Nível de Obesidade",
+               "Comparação do índice de massa corporal entre os grupos.")
+
+    painel_hist("family_history",
+                "📌 Histórico Familiar",
+                "Associação entre predisposição genética e obesidade.")
+
+    painel_hist("FAVC",
+                "📌 Consumo de Alimentos Calóricos",
+                "Impacto da dieta hipercalórica.")
+
+    painel_box("FCVC",
+               "📌 Consumo de Vegetais",
+               "Frequência de ingestão de vegetais.")
+
+    painel_box("NCP",
+               "📌 Número de Refeições",
+               "Frequência alimentar diária.")
+
+    painel_hist("CAEC",
+                "📌 Alimentação Entre Refeições",
+                "Consumo intermediário de alimentos.")
+
+    painel_box("CH2O",
+               "📌 Consumo de Água",
+               "Nível médio de ingestão hídrica.")
+
+    painel_hist("CALC",
+                "📌 Consumo de Álcool",
+                "Padrão de ingestão alcoólica.")
+
+    painel_hist("SMOKE",
+                "📌 Tabagismo",
+                "Distribuição do hábito de fumar.")
+
+    painel_hist("SCC",
+                "📌 Monitoramento de Calorias",
+                "Controle alimentar declarado.")
+
+    painel_box("FAF",
+               "📌 Atividade Física",
+               "Nível de atividade física semanal.")
+
+    painel_box("TUE",
+               "📌 Tempo de Tela",
+               "Tempo médio de exposição a dispositivos.")
+
+    painel_hist("MTRANS",
+                "📌 Meio de Transporte",
+                "Padrão de mobilidade e possível associação com sedentarismo.")
+
+    painel_hist("Gender",
+                "📌 Distribuição por Gênero",
+                "Diferenças de prevalência entre homens e mulheres.")
