@@ -5,50 +5,43 @@ import pandas as pd
 
 app = Flask(__name__)
 
-# ======================================================
-# CONFIGURAÇÃO DE CAMINHO DO MODELO
-# ======================================================
+# =====================================================
+# PATHS
+# =====================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 MODEL_PATH = os.path.join(BASE_DIR, "obesity_model.pkl")
+DATA_PATH = os.path.join(BASE_DIR, "obesity.csv")
 
-# Carregar modelo
-try:
-    model = joblib.load(MODEL_PATH)
-    print("Modelo carregado com sucesso.")
-except Exception as e:
-    print(f"Erro ao carregar modelo: {e}")
-    model = None
+# =====================================================
+# LOAD MODEL
+# =====================================================
+model = joblib.load(MODEL_PATH)
 
+# =====================================================
+# LOAD DATA
+# =====================================================
+df = pd.read_csv(DATA_PATH)
 
-# ======================================================
-# ROTA RAIZ (HEALTH CHECK)
-# ======================================================
-@app.route("/", methods=["GET"])
+# =====================================================
+# ROOT
+# =====================================================
+@app.route("/")
 def home():
     return jsonify({
-        "status": "API online",
         "service": "Obesity Prediction API",
-        "version": "1.0"
+        "status": "API online",
+        "version": "2.0"
     })
 
-
-# ======================================================
-# ROTA DE PREDIÇÃO
-# ======================================================
+# =====================================================
+# PREDICTION ENDPOINT
+# =====================================================
 @app.route("/predict", methods=["POST"])
 def predict():
-    if model is None:
-        return jsonify({"error": "Modelo não carregado."}), 500
-
     try:
-        data = request.get_json()
-
-        if not data:
-            return jsonify({"error": "JSON vazio ou inválido."}), 400
-
-        # Converter para DataFrame (modelo espera estrutura tabular)
+        data = request.json
         input_df = pd.DataFrame([data])
-
         prediction = model.predict(input_df)[0]
 
         return jsonify({
@@ -57,14 +50,21 @@ def predict():
 
     except Exception as e:
         return jsonify({
-            "error": "Erro ao processar requisição.",
-            "details": str(e)
-        }), 500
+            "error": str(e)
+        }), 400
+
+# =====================================================
+# DATA ENDPOINT (NOVO)
+# =====================================================
+@app.route("/data", methods=["GET"])
+def get_data():
+    try:
+        return df.to_json(orient="records")
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 400
 
 
-# ======================================================
-# EXECUÇÃO (IMPORTANTE PARA RENDER)
-# ======================================================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=5000)
