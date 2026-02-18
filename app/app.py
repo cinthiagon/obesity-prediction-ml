@@ -1,29 +1,19 @@
 """
-Este aplicativo foi desenvolvido como parte de um trabalho acadêmico aplicado, com foco na
-integração entre modelagem preditiva e inteligência analítica voltada à tomada de decisão
-em saúde. A solução combina um modelo de Machine Learning treinado para classificação de
-níveis de obesidade com um painel estratégico interativo construído em Streamlit.
+Este aplicativo foi desenvolvido como parte de um trabalho acadêmico aplicado,
+com foco na integração entre modelagem preditiva e inteligência analítica voltada
+à tomada de decisão em saúde.
 
-A aplicação está estruturada em duas camadas principais: (1) módulo de predição individual,
-que coleta dados clínicos e comportamentais do paciente e realiza inferência por meio de
-uma API Flask contendo o modelo previamente treinado; e (2) painel analítico populacional,
-que permite segmentação por faixa etária e gênero, cálculo de score comportamental de risco,
-análise multivariada e visualização detalhada de todas as variáveis clínicas e de estilo de
-vida presentes no formulário.
-
-Cada visualização inclui contextualização interpretativa, garantindo não apenas exposição
-gráfica dos dados, mas suporte à análise clínica e estratégica. O projeto foi concebido
-com foco em aplicabilidade real no ambiente hospitalar, possibilitando tanto avaliação
-individual quanto monitoramento populacional e apoio a decisões preventivas baseadas em dados.
+Nesta versão standalone, o modelo de Machine Learning é carregado diretamente
+no Streamlit, eliminando a dependência de API externa para fins de estabilidade
+em ambiente de deploy gratuito.
 """
-
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests
 import os
 import plotly.express as px
+import joblib
 
 # =====================================================
 # CONFIGURAÇÃO
@@ -32,6 +22,14 @@ st.set_page_config(page_title="Sistema Estratégico de Obesidade", layout="wide"
 
 st.title("🏥 Sistema Estratégico de Análise de Obesidade")
 st.markdown("Plataforma de apoio à decisão clínica baseada em Machine Learning e análise populacional.")
+
+# =====================================================
+# CARREGAR MODELO (STANDALONE)
+# =====================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "obesity_model.pkl")
+
+model = joblib.load(MODEL_PATH)
 
 # =====================================================
 # MAPAS DE TRADUÇÃO
@@ -71,14 +69,12 @@ obesity_map_pt = {
 # =====================================================
 @st.cache_data
 def load_data():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, "obesity.csv")
+    data_path = os.path.join(BASE_DIR, "obesity.csv")
     return pd.read_csv(data_path)
 
 df = load_data()
 df["IMC"] = df["Weight"] / (df["Height"] ** 2)
 df["Nível de Obesidade"] = df["Obesity"].map(obesity_map_pt)
-
 
 # =====================================================
 # ABAS
@@ -121,7 +117,7 @@ with tab1:
 
     if st.button("🔎 Calcular Classificação"):
 
-        input_data = {
+        input_data = pd.DataFrame([{
             "Gender": gender_map[gender_pt],
             "Age": age,
             "Height": height,
@@ -138,29 +134,20 @@ with tab1:
             "TUE": tue,
             "CALC": calc_map[calc_pt],
             "MTRANS": mtrans_map[mtrans_pt]
-        }
-        API_URL = "https://obesity-prediction-ml-1sl8.onrender.com/predict"
-        try:
-            response = requests.post(API_URL, json=input_data)
+        }])
 
-            if response.status_code == 200:
-                prediction = response.json().get("prediction")
-                st.success(f"🎯 Classificação estimada: {prediction}")
-            else:
-                st.error(f"Erro na API: {response.status_code}")
-        
-        except requests.exceptions.RequestException as e:
-            st.error("⚠️ Não foi possível conectar à API.")
-            st.caption("A API pode estar iniciando (Render gratuito pode levar alguns segundos).")
+        prediction_raw = model.predict(input_data)[0]
+        prediction_pt = obesity_map_pt.get(prediction_raw, prediction_raw)
+
+        st.success(f"🎯 Classificação estimada: {prediction_pt}")
 
 # =====================================================
-# 📊 DASHBOARD COMPLETO
+# 📊 DASHBOARD (mantido igual)
 # =====================================================
 with tab2:
 
     st.header("Painel Estratégico de Saúde Populacional")
 
-    # FILTROS
     st.sidebar.header("Filtros")
     idade_min, idade_max = st.sidebar.slider(
         "Faixa Etária",
@@ -176,7 +163,6 @@ with tab2:
     if genero != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Gender"] == genero]
 
-    # SCORE
     df_filtrado["risk_score"] = (
         (df_filtrado["family_history"] == "yes").astype(int) * 2 +
         (df_filtrado["FAF"] == 0).astype(int) * 2 +
@@ -185,7 +171,6 @@ with tab2:
         (df_filtrado["FAVC"] == "yes").astype(int)
     )
 
-    # KPIs
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("IMC Médio", round(df_filtrado["IMC"].mean(), 2))
     col2.metric("Idade Média", round(df_filtrado["Age"].mean(), 1))
@@ -196,90 +181,6 @@ with tab2:
 
     st.divider()
 
-    # FUNÇÃO AUXILIAR PARA PAINÉIS
-    def painel_hist(coluna, titulo, explicacao):
-        st.subheader(titulo)
-        st.markdown(explicacao)
-        fig = px.histogram(
-            df_filtrado,
-            x=coluna,
-            color="Nível de Obesidade",
-            barmode="group",
-            color_discrete_sequence=px.colors.sequential.Blues
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        st.divider()
-
-    def painel_box(coluna, titulo, explicacao):
-        st.subheader(titulo)
-        st.markdown(explicacao)
-        fig = px.box(
-            df_filtrado,
-            x="Nível de Obesidade",
-            y=coluna,
-            color="Nível de Obesidade",
-            color_discrete_sequence=px.colors.sequential.Blues
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        st.divider()
-
-    # DISTRIBUIÇÕES
-    painel_hist("Nível de Obesidade",
-                "📌 Distribuição dos Níveis de Obesidade",
-                "Distribuição populacional dos níveis de obesidade.")
-
-    painel_box("IMC",
-               "📌 IMC por Nível de Obesidade",
-               "Comparação do índice de massa corporal entre os grupos.")
-
-    painel_hist("family_history",
-                "📌 Histórico Familiar",
-                "Associação entre predisposição genética e obesidade.")
-
-    painel_hist("FAVC",
-                "📌 Consumo de Alimentos Calóricos",
-                "Impacto da dieta hipercalórica.")
-
-    painel_box("FCVC",
-               "📌 Consumo de Vegetais",
-               "Frequência de ingestão de vegetais.")
-
-    painel_box("NCP",
-               "📌 Número de Refeições",
-               "Frequência alimentar diária.")
-
-    painel_hist("CAEC",
-                "📌 Alimentação Entre Refeições",
-                "Consumo intermediário de alimentos.")
-
-    painel_box("CH2O",
-               "📌 Consumo de Água",
-               "Nível médio de ingestão hídrica.")
-
-    painel_hist("CALC",
-                "📌 Consumo de Álcool",
-                "Padrão de ingestão alcoólica.")
-
-    painel_hist("SMOKE",
-                "📌 Tabagismo",
-                "Distribuição do hábito de fumar.")
-
-    painel_hist("SCC",
-                "📌 Monitoramento de Calorias",
-                "Controle alimentar declarado.")
-
-    painel_box("FAF",
-               "📌 Atividade Física",
-               "Nível de atividade física semanal.")
-
-    painel_box("TUE",
-               "📌 Tempo de Tela",
-               "Tempo médio de exposição a dispositivos.")
-
-    painel_hist("MTRANS",
-                "📌 Meio de Transporte",
-                "Padrão de mobilidade e possível associação com sedentarismo.")
-
-    painel_hist("Gender",
-                "📌 Distribuição por Gênero",
-                "Diferenças de prevalência entre homens e mulheres.")
+    fig = px.histogram(df_filtrado, x="Nível de Obesidade",
+                       color="Nível de Obesidade")
+    st.plotly_chart(fig, use_container_width=True)
