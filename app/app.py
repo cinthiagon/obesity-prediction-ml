@@ -139,7 +139,7 @@ with tab1:
             "CALC": calc_map[calc_pt],
             "MTRANS": mtrans_map[mtrans_pt]
         }
-        API_URL = "https://obesity-prediction-ml-1sl8.onrender.com/predict"
+        API_URL = os.getenv("API_URL", "http://api:5000/predict")
         try:
             response = requests.post(API_URL, json=input_data)
 

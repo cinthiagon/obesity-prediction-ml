@@ -1,0 +1,28 @@
+# Ambiente virtual
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git/
+.gitignore
+
+# Notebooks
+notebooks/
+
+# Arquivos de desenvolvimento
+.devcontainer/
+*.log
+
+# Arquivos grandes desnecessários
+*.ipynb
+
+# Cache
+.cache/
+*.sqlite3
+
+# Sistema
+.DS_Store
+Thumbs.db
