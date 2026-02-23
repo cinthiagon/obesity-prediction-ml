@@ -51,7 +51,7 @@ Notebook disponível em:
 
 ## ✔ 2. Modelo com Assertividade > 75%
 
-Modelo selecionado: **Random Forest Classifier**
+Modelo selecionado: **Gradient Boosting**
 
 Resultados obtidos:
 
